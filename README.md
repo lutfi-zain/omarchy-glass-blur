@@ -7,6 +7,8 @@ An interactive quick-control Quickshell bar widget for [Omarchy](https://omarchy
 - **Live Window Opacity**: Adjust active and inactive window opacity with instant preview.
 - **Frosted Glass Blur**: Toggle and tune Hyprland's dual-Kawase blur passes and radius.
 - **Top Bar Blur**: Enable or disable glass blur underneath the Omarchy top bar (`omarchy-bar` namespace).
+- **Invert Bar Color**: One-click toggle to invert top bar icons and text for high-contrast viewing.
+- **Custom Bar Color**: Curated palette of 9 color swatches plus a custom hex code input field (`#hex`) with instant IPC preview.
 - **Quick Presets**: One-click presets for Solid (100%), Subtle (92%), Frosted (88%), and Deep (78%).
 - **Seamless Persistence**: Writes clean overrides inside fenced markers in `~/.config/hypr/looknfeel.lua`.
 
@@ -17,6 +19,7 @@ flowchart TD
     A[Quickshell Bar Widget: Panel.qml] -->|execDetached| B[Helper: bin/glass-ctl]
     B -->|hyprctl eval| C[Hyprland Runtime]
     B -->|update @omarchy-glass block| D[~/.config/hypr/looknfeel.lua]
+    B -->|omarchy-shell IPC| E[Status Bar: lutfizain.bar]
     D -->|auto-reload| C
 ```
 
