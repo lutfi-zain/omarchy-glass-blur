@@ -4,6 +4,9 @@ from pathlib import Path
 
 LOOKNFEEL_FILE = Path.home() / ".config/hypr/looknfeel.lua"
 TOGGLE_FILE = Path.home() / ".local/state/omarchy/toggles/bar-blur"
+BAR_INVERT_FILE = Path.home() / ".local/state/omarchy/toggles/bar-invert"
+BAR_COLOR_FILE = Path.home() / ".local/state/omarchy/toggles/bar-color"
+
 
 
 def get_option(opt):
@@ -23,6 +26,16 @@ def is_bar_blur_enabled():
             return "omarchy-bar" in block and "blur = true" in block
         return "omarchy-bar" in content and "blur = true" in block
     return False
+def is_bar_invert_enabled():
+    if BAR_INVERT_FILE.exists():
+        return BAR_INVERT_FILE.read_text().strip() in ("true", "1", "yes")
+    return False
+
+def get_bar_custom_color():
+    if BAR_COLOR_FILE.exists():
+        return BAR_COLOR_FILE.read_text().strip()
+    return ""
+
 
 def cmd_get():
     active = get_option("decoration:active_opacity").get("float", 0.88)
@@ -31,18 +44,34 @@ def cmd_get():
     passes = get_option("decoration:blur:passes").get("int", 3)
     size = get_option("decoration:blur:size").get("int", 6)
     bar_blur = is_bar_blur_enabled()
+    bar_invert = is_bar_invert_enabled()
+    bar_color = get_bar_custom_color()
     print(json.dumps({
         "activeOpacity": round(active, 2),
         "inactiveOpacity": round(inactive, 2),
         "blurEnabled": blur_en,
         "blurPasses": passes,
         "blurSize": size,
-        "barBlur": bar_blur
+        "barBlur": bar_blur,
+        "barInvert": bar_invert,
+        "barColor": bar_color
     }))
 
-def apply_hyprland(active, inactive, blur_en, passes, size, bar_blur):
+def apply_bar_colors(bar_invert, bar_color):
+    BAR_INVERT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    BAR_INVERT_FILE.write_text("true\n" if bar_invert else "false\n")
+    BAR_COLOR_FILE.write_text(f"{bar_color.strip()}\n" if bar_color else "\n")
+    subprocess.run(["omarchy-shell", "-q", "omarchy.bar", "setBarInvert", "true" if bar_invert else "false"], capture_output=True)
+    subprocess.run(["omarchy-shell", "-q", "omarchy.bar", "setBarColor", bar_color.strip() if bar_color else ""], capture_output=True)
+def apply_hyprland(active, inactive, blur_en, passes, size, bar_blur, bar_invert=None, bar_color=None):
     TOGGLE_FILE.parent.mkdir(parents=True, exist_ok=True)
     TOGGLE_FILE.write_text("true\n" if bar_blur else "false\n")
+    subprocess.run(["omarchy-shell", "-q", "omarchy.bar", "setBarBlur", "true" if bar_blur else "false"], capture_output=True)
+    if bar_invert is not None or bar_color is not None:
+        apply_bar_colors(
+            bar_invert if bar_invert is not None else is_bar_invert_enabled(),
+            bar_color if bar_color is not None else get_bar_custom_color()
+        )
     lua_code = f"hl.config({{ decoration = {{ active_opacity = {active:.2f}, inactive_opacity = {inactive:.2f}, blur = {{ enabled = {str(blur_en).lower()}, passes = {passes}, size = {size}, ignore_opacity = true, new_optimizations = true }} }} }})"
     subprocess.run(["hyprctl", "eval", lua_code], capture_output=True)
     if bar_blur:
@@ -52,7 +81,8 @@ def apply_hyprland(active, inactive, blur_en, passes, size, bar_blur):
         subprocess.run(["hyprctl", "reload"], capture_output=True)
         subprocess.run(["hyprctl", "eval", lua_code], capture_output=True)
 
-def cmd_set(active, inactive, blur_en, passes, size, bar_blur):
+def cmd_set(active, inactive, blur_en, passes, size, bar_blur, bar_invert=None, bar_color=None):
+
     # Persist in looknfeel.lua
     if LOOKNFEEL_FILE.exists():
         content = LOOKNFEEL_FILE.read_text()
@@ -77,7 +107,7 @@ hl.config({{
         else:
             new_content = content.rstrip() + "\n\n" + fenced_block + "\n"
         LOOKNFEEL_FILE.write_text(new_content)
-    apply_hyprland(active, inactive, blur_en, passes, size, bar_blur)
+    apply_hyprland(active, inactive, blur_en, passes, size, bar_blur, bar_invert, bar_color)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == "get":
@@ -89,7 +119,9 @@ if __name__ == "__main__":
         passes = int(sys.argv[5])
         size = int(sys.argv[6])
         bar_blur = sys.argv[7].lower() in ("true", "1", "yes") if len(sys.argv) > 7 else is_bar_blur_enabled()
-        apply_hyprland(active, inactive, blur_en, passes, size, bar_blur)
+        bar_invert = sys.argv[8].lower() in ("true", "1", "yes") if len(sys.argv) > 8 else is_bar_invert_enabled()
+        bar_color = sys.argv[9].strip() if len(sys.argv) > 9 else get_bar_custom_color()
+        apply_hyprland(active, inactive, blur_en, passes, size, bar_blur, bar_invert, bar_color)
     elif sys.argv[1] == "set" and len(sys.argv) >= 7:
         active = float(sys.argv[2])
         inactive = float(sys.argv[3])
@@ -97,4 +129,6 @@ if __name__ == "__main__":
         passes = int(sys.argv[5])
         size = int(sys.argv[6])
         bar_blur = sys.argv[7].lower() in ("true", "1", "yes") if len(sys.argv) > 7 else is_bar_blur_enabled()
-        cmd_set(active, inactive, blur_en, passes, size, bar_blur)
+        bar_invert = sys.argv[8].lower() in ("true", "1", "yes") if len(sys.argv) > 8 else is_bar_invert_enabled()
+        bar_color = sys.argv[9].strip() if len(sys.argv) > 9 else get_bar_custom_color()
+        cmd_set(active, inactive, blur_en, passes, size, bar_blur, bar_invert, bar_color)

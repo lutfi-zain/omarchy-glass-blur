@@ -21,6 +21,8 @@ Panel {
   property int blurPasses: 3
   property int blurSize: 6
   property bool barBlurEnabled: false
+  property bool barInvertEnabled: false
+  property string barCustomColor: ""
   property bool loaded: false
 
   function loadSettings() {
@@ -37,6 +39,8 @@ Panel {
       if (data.blurSize !== undefined) root.blurSize = data.blurSize
       root.loaded = true
       if (data.barBlur !== undefined) root.barBlurEnabled = data.barBlur
+      if (data.barInvert !== undefined) root.barInvertEnabled = data.barInvert
+      if (data.barColor !== undefined) root.barCustomColor = data.barColor
     } catch (e) {}
   }
 
@@ -51,7 +55,9 @@ Panel {
       blurEnabled ? "true" : "false",
       String(blurPasses),
       String(blurSize),
-      barBlurEnabled ? "true" : "false"
+      barBlurEnabled ? "true" : "false",
+      barInvertEnabled ? "true" : "false",
+      barCustomColor || ""
     ]
     Quickshell.execDetached(args)
   }
@@ -101,6 +107,7 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
+      blocked: hexField.activeFocus
       onCloseRequested: root.close()
 
       Column {
@@ -311,12 +318,148 @@ Panel {
             root.applySettings(false)
           }
         }
+        // Section 5: Invert Bar Color
+        Toggle {
+          width: parent.width
+          label: "Invert Bar Color"
+          description: root.barInvertEnabled ? "Top bar icons & text inverted" : "Standard theme colors"
+          checked: root.barInvertEnabled
+          foreground: root.bar ? root.bar.foreground : Color.foreground
+          accent: root.bar ? root.bar.urgent : Color.accent
+          onClicked: {
+            root.barInvertEnabled = !root.barInvertEnabled
+            if (root.barInvertEnabled) root.barCustomColor = ""
+            root.applySettings(false)
+          }
+        }
 
         PanelSeparator {
           foreground: root.bar ? root.bar.foreground : Color.foreground
         }
 
-        // Section 5: Quick Presets
+        // Section 6: Custom Bar Color
+        Column {
+          width: parent.width
+          spacing: Style.space(8)
+
+          RowLayout {
+            width: parent.width
+
+            PanelSectionHeader {
+              text: "BAR ICON & TEXT COLOR"
+              foreground: root.bar ? root.bar.foreground : Color.foreground
+              fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+              text: root.barCustomColor ? root.barCustomColor.toUpperCase() : (root.barInvertEnabled ? "Inverted" : "Theme Default")
+              color: root.barCustomColor ? Qt.color(root.barCustomColor) : Qt.darker(root.bar ? root.bar.foreground : Color.foreground, 1.4)
+              font.family: root.bar ? root.bar.fontFamily : Style.font.family
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+          }
+
+          // Color swatches row
+          RowLayout {
+            width: parent.width
+            spacing: Style.space(6)
+
+            Repeater {
+              model: [
+                { name: "Default", color: "" },
+                { name: "White", color: "#ffffff" },
+                { name: "Black", color: "#111111" },
+                { name: "Cyan", color: "#5eead4" },
+                { name: "Lavender", color: "#c084fc" },
+                { name: "Rose", color: "#fb7185" },
+                { name: "Amber", color: "#fbbf24" },
+                { name: "Emerald", color: "#34d399" },
+                { name: "Coral", color: "#fb923c" }
+              ]
+
+              Rectangle {
+                id: swatch
+                required property var modelData
+                Layout.fillWidth: true
+                height: Style.space(22)
+                radius: Style.cornerRadius > 0 ? Style.space(4) : 0
+                color: modelData.color === "" ? (root.bar ? root.bar.foreground : Color.foreground) : modelData.color
+                opacity: modelData.color === "" ? 0.35 : 1.0
+                border.width: (root.barCustomColor === modelData.color && !root.barInvertEnabled) ? 2 : 1
+                border.color: (root.barCustomColor === modelData.color && !root.barInvertEnabled)
+                  ? (root.bar ? root.bar.urgent : Color.accent)
+                  : Qt.rgba(1, 1, 1, 0.2)
+
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    root.barCustomColor = swatch.modelData.color
+                    if (root.barCustomColor !== "") root.barInvertEnabled = false
+                    root.applySettings(false)
+                  }
+                }
+              }
+            }
+          }
+
+          // Hex custom input row
+          RowLayout {
+            width: parent.width
+            spacing: Style.space(6)
+
+            TextField {
+              id: hexField
+              Layout.fillWidth: true
+              height: Style.space(28)
+              placeholderText: "Hex color (e.g. #ffaa00)"
+              text: root.barCustomColor
+              font.pixelSize: Style.font.caption
+              onAccepted: {
+                var val = text.trim()
+                if (val.length > 0 && val.charAt(0) !== "#") val = "#" + val
+                root.barCustomColor = val
+                if (val !== "") root.barInvertEnabled = false
+                root.applySettings(false)
+              }
+            }
+
+            Button {
+              text: "Apply"
+              height: Style.space(28)
+              bordered: true
+              onClicked: {
+                var val = hexField.text.trim()
+                if (val.length > 0 && val.charAt(0) !== "#") val = "#" + val
+                root.barCustomColor = val
+                if (val !== "") root.barInvertEnabled = false
+                root.applySettings(false)
+              }
+            }
+
+            Button {
+              text: "Reset"
+              height: Style.space(28)
+              bordered: true
+              visible: root.barCustomColor !== "" || root.barInvertEnabled
+              onClicked: {
+                root.barCustomColor = ""
+                root.barInvertEnabled = false
+                hexField.text = ""
+                root.applySettings(false)
+              }
+            }
+          }
+        }
+
+        PanelSeparator {
+          foreground: root.bar ? root.bar.foreground : Color.foreground
+        }
+
+        // Section 7: Quick Presets
         Column {
           width: parent.width
           spacing: Style.space(6)
