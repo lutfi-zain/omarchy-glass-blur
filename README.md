@@ -6,11 +6,19 @@ An interactive quick-control Quickshell bar widget for [Omarchy](https://omarchy
 
 - **Live Window Opacity**: Adjust active and inactive window opacity with instant preview.
 - **Frosted Glass Blur**: Toggle and tune Hyprland's dual-Kawase blur passes and radius.
-- **Top Bar Blur**: Enable or disable glass blur underneath the Omarchy top bar (`omarchy-bar` namespace).
-- **Invert Bar Color**: One-click toggle to invert top bar icons and text for high-contrast viewing.
-- **Custom Bar Color**: Curated palette of 9 color swatches plus a custom hex code input field (`#hex`) with instant IPC preview.
+- **Top Bar Blur & Glass Tint Slider**: Toggle glass blur underneath the Omarchy top bar and fine-tune bar tint darkness (30%–95%) so text never clashes with bright wallpapers.
+- **4 Bar Color Modes**:
+  - **Theme Auto**: Dynamic luminance-adaptive contrast based on wallpaper.
+  - **Theme Accent**: Pure theme foreground color (`Color.bar.text`), completely unshifted.
+  - **Invert Palette**: High-contrast inverted palette.
+  - **Custom Picker**: Full visual Canva/Adobe 2D color picker.
+- **Canva / Adobe Visual Color Picker**:
+  - 2D Saturation / Value (SV) gradient box with interactive crosshair dragger.
+  - 1D 360° Rainbow Hue slider with draggable position thumb.
+  - 8 curated aesthetic color swatches.
+  - Live preview swatch + hex input field (`#hex`) with real-time IPC synchronization.
 - **Quick Presets**: One-click presets for Solid (100%), Subtle (92%), Frosted (88%), and Deep (78%).
-- **Seamless Persistence**: Writes clean overrides inside fenced markers in `~/.config/hypr/looknfeel.lua`.
+- **Seamless Persistence**: Writes clean overrides inside fenced markers in `~/.config/hypr/looknfeel.lua` and state toggles.
 
 ## Architecture
 
