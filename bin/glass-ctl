@@ -40,7 +40,7 @@ def apply_hyprland(active, inactive, blur_en, passes, size, bar_blur):
     lua_code = f"hl.config({{ decoration = {{ active_opacity = {active:.2f}, inactive_opacity = {inactive:.2f}, blur = {{ enabled = {str(blur_en).lower()}, passes = {passes}, size = {size}, ignore_opacity = true, new_optimizations = true }} }} }})"
     subprocess.run(["hyprctl", "eval", lua_code], capture_output=True)
     if bar_blur:
-        bar_lua = 'hl.layer_rule({ match = { namespace = "omarchy-bar" }, blur = true, blur_popups = true, ignore_alpha = 0.1 })'
+        bar_lua = 'hl.layer_rule({ match = { namespace = "omarchy-bar" }, blur = true, blur_popups = true, ignore_alpha = 0.0 })'
         subprocess.run(["hyprctl", "eval", bar_lua], capture_output=True)
     else:
         subprocess.run(["hyprctl", "reload"], capture_output=True)
@@ -50,7 +50,7 @@ def cmd_set(active, inactive, blur_en, passes, size, bar_blur):
     # Persist in looknfeel.lua
     if LOOKNFEEL_FILE.exists():
         content = LOOKNFEEL_FILE.read_text()
-        bar_rule = '\nhl.layer_rule({ match = { namespace = "omarchy-bar" }, blur = true, blur_popups = true, ignore_alpha = 0.1 })' if bar_blur else ''
+        bar_rule = '\nhl.layer_rule({ match = { namespace = "omarchy-bar" }, blur = true, blur_popups = true, ignore_alpha = 0.0 })' if bar_blur else ''
         fenced_block = f"""-- @omarchy-glass-start
 hl.config({{
   decoration = {{
