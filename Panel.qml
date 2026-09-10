@@ -457,7 +457,7 @@ Panel {
 
             Text {
               text: root.barColorMode === "theme" ? "Adaptive"
-                  : root.barColorMode === "theme-direct" ? "Theme Accent"
+                  : (root.barColorMode === "theme-accent" || root.barColorMode === "theme-direct") ? "Theme Accent"
                   : root.barColorMode === "invert" ? "Inverted"
                   : "Custom"
               color: root.bar ? root.bar.urgent : Color.accent
@@ -489,9 +489,9 @@ Panel {
               Layout.fillWidth: true
               text: "Theme Accent"
               bordered: true
-              active: root.barColorMode === "theme-direct"
+              active: root.barColorMode === "theme-accent" || root.barColorMode === "theme-direct"
               onClicked: {
-                root.barColorMode = "theme-direct"
+                root.barColorMode = "theme-accent"
                 root.applySettings(false)
               }
             }

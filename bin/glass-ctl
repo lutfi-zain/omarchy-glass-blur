@@ -8,6 +8,10 @@ BAR_INVERT_FILE = Path.home() / ".local/state/omarchy/toggles/bar-invert"
 BAR_COLOR_FILE = Path.home() / ".local/state/omarchy/toggles/bar-color"
 BAR_MODE_FILE = Path.home() / ".local/state/omarchy/toggles/bar-mode"
 BAR_OPACITY_FILE = Path.home() / ".local/state/omarchy/toggles/bar-opacity"
+USER_SHELL_TOML = Path.home() / ".config/omarchy/shell.toml"
+USER_SHELL_JSON = Path.home() / ".config/omarchy/shell.json"
+THEME_COLORS_TOML = Path.home() / ".local/state/omarchy/current/theme/colors.toml"
+
 
 
 
@@ -58,6 +62,51 @@ def get_bar_glass_opacity():
         except Exception:
             pass
     return 0.60
+def get_theme_accent():
+    if THEME_COLORS_TOML.exists():
+        for line in THEME_COLORS_TOML.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("accent"):
+                parts = line.split("=")
+                if len(parts) == 2:
+                    return parts[1].strip().strip('"').strip("'")
+    return "#d1583b"
+
+def update_user_shell_toml(bar_mode, bar_color, bar_opacity):
+    lines = []
+    if USER_SHELL_TOML.exists():
+        for line in USER_SHELL_TOML.read_text().splitlines():
+            if line.strip().startswith("[bar]"):
+                break
+            lines.append(line)
+    while lines and not lines[-1].strip():
+        lines.pop()
+
+    lines.append("")
+    lines.append("[bar]")
+    lines.append(f"background-alpha = {bar_opacity:.2f}")
+    if bar_mode == "custom" and bar_color and bar_color != "none":
+        lines.append(f'text = "{bar_color}"')
+    elif bar_mode == "invert":
+        lines.append('text = "#0a0a0a"')
+    elif bar_mode in ("theme-direct", "theme-accent"):
+        accent = get_theme_accent()
+        lines.append(f'text = "{accent}"')
+
+    USER_SHELL_TOML.write_text("\n".join(lines) + "\n")
+
+def update_shell_json_transparency(transparent):
+    if USER_SHELL_JSON.exists():
+        try:
+            data = json.loads(USER_SHELL_JSON.read_text())
+            if "bar" in data:
+                cur = data["bar"].get("transparent", True)
+                if cur != transparent:
+                    data["bar"]["transparent"] = transparent
+                    USER_SHELL_JSON.write_text(json.dumps(data, indent=2) + "\n")
+        except Exception:
+            pass
+
 
 
 
@@ -91,11 +140,9 @@ def apply_bar_settings(bar_blur, bar_mode, bar_color, bar_opacity):
     BAR_COLOR_FILE.write_text(f"{bar_color.strip()}\n" if bar_color else "\n")
     BAR_OPACITY_FILE.write_text(f"{bar_opacity:.2f}\n")
 
-    subprocess.run(["omarchy-shell", "-q", "omarchy.bar", "setBarBlur", "true" if bar_blur else "false"], capture_output=True)
-    subprocess.run(["omarchy-shell", "-q", "omarchy.bar", "setBarColorMode", bar_mode], capture_output=True)
-    subprocess.run(["omarchy-shell", "-q", "omarchy.bar", "setBarColor", bar_color.strip() if bar_color else "none"], capture_output=True)
-    subprocess.run(["omarchy-shell", "-q", "omarchy.bar", "setBarOpacity", f"{bar_opacity:.2f}"], capture_output=True)
-
+    update_user_shell_toml(bar_mode, bar_color, bar_opacity)
+    want_transparent = (not bar_blur) and (bar_mode == "theme")
+    update_shell_json_transparency(want_transparent)
 def apply_hyprland(active, inactive, blur_en, passes, size, bar_blur, bar_mode="theme", bar_color="", bar_opacity=0.60):
     TOGGLE_FILE.parent.mkdir(parents=True, exist_ok=True)
     TOGGLE_FILE.write_text("true\n" if bar_blur else "false\n")
