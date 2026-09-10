@@ -297,38 +297,17 @@ Panel {
 
         PanelSeparator {
           foreground: root.bar ? root.bar.foreground : Color.foreground
-        }
         // Section 4: Top Bar Blur
-        RowLayout {
+        Toggle {
           width: parent.width
-          spacing: Style.space(8)
-
-          ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 0
-
-            Text {
-              text: "Top Bar Blur"
-              color: root.bar ? root.bar.foreground : Color.foreground
-              font.family: root.bar ? root.bar.fontFamily : Style.font.family
-              font.pixelSize: Style.font.body
-              font.bold: true
-            }
-
-            Text {
-              text: root.barBlurEnabled ? "Glass blur active on status bar" : "Status bar blur disabled"
-              color: Qt.darker(root.bar ? root.bar.foreground : Color.foreground, 1.4)
-              font.family: root.bar ? root.bar.fontFamily : Style.font.family
-              font.pixelSize: Style.font.caption
-            }
-          }
-
-          ToggleSwitch {
-            checked: root.barBlurEnabled
-            onToggled: {
-              root.barBlurEnabled = !root.barBlurEnabled
-              root.applySettings(false)
-            }
+          label: "Top Bar Blur"
+          description: root.barBlurEnabled ? "Glass blur active on status bar" : "Status bar blur disabled"
+          checked: root.barBlurEnabled
+          foreground: root.bar ? root.bar.foreground : Color.foreground
+          accent: root.bar ? root.bar.urgent : Color.accent
+          onClicked: {
+            root.barBlurEnabled = !root.barBlurEnabled
+            root.applySettings(false)
           }
         }
 
