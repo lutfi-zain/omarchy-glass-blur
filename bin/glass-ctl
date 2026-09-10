@@ -3,6 +3,8 @@ import sys, subprocess, json, re
 from pathlib import Path
 
 LOOKNFEEL_FILE = Path.home() / ".config/hypr/looknfeel.lua"
+TOGGLE_FILE = Path.home() / ".local/state/omarchy/toggles/bar-blur"
+
 
 def get_option(opt):
     res = subprocess.run(["hyprctl", "-j", "getoption", opt], capture_output=True, text=True)
@@ -12,6 +14,8 @@ def get_option(opt):
         return {}
 
 def is_bar_blur_enabled():
+    if TOGGLE_FILE.exists():
+        return TOGGLE_FILE.read_text().strip() in ("true", "1", "yes")
     if LOOKNFEEL_FILE.exists():
         content = LOOKNFEEL_FILE.read_text()
         if "-- @omarchy-glass-start" in content and "-- @omarchy-glass-end" in content:
@@ -37,6 +41,8 @@ def cmd_get():
     }))
 
 def apply_hyprland(active, inactive, blur_en, passes, size, bar_blur):
+    TOGGLE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    TOGGLE_FILE.write_text("true\n" if bar_blur else "false\n")
     lua_code = f"hl.config({{ decoration = {{ active_opacity = {active:.2f}, inactive_opacity = {inactive:.2f}, blur = {{ enabled = {str(blur_en).lower()}, passes = {passes}, size = {size}, ignore_opacity = true, new_optimizations = true }} }} }})"
     subprocess.run(["hyprctl", "eval", lua_code], capture_output=True)
     if bar_blur:
