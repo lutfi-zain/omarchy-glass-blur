@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+import sys, subprocess, json, re
+from pathlib import Path
+
+LOOKNFEEL_FILE = Path.home() / ".config/hypr/looknfeel.lua"
+
+def get_option(opt):
+    res = subprocess.run(["hyprctl", "-j", "getoption", opt], capture_output=True, text=True)
+    try:
+        return json.loads(res.stdout)
+    except Exception:
+        return {}
+
+def is_bar_blur_enabled():
+    if LOOKNFEEL_FILE.exists():
+        content = LOOKNFEEL_FILE.read_text()
+        if "-- @omarchy-glass-start" in content and "-- @omarchy-glass-end" in content:
+            block = content.split("-- @omarchy-glass-start")[1].split("-- @omarchy-glass-end")[0]
+            return "omarchy-bar" in block and "blur = true" in block
+        return "omarchy-bar" in content and "blur = true" in block
+    return False
+
+def cmd_get():
+    active = get_option("decoration:active_opacity").get("float", 0.88)
+    inactive = get_option("decoration:inactive_opacity").get("float", 0.78)
+    blur_en = get_option("decoration:blur:enabled").get("bool", True)
+    passes = get_option("decoration:blur:passes").get("int", 3)
+    size = get_option("decoration:blur:size").get("int", 6)
+    bar_blur = is_bar_blur_enabled()
+    print(json.dumps({
+        "activeOpacity": round(active, 2),
+        "inactiveOpacity": round(inactive, 2),
+        "blurEnabled": blur_en,
+        "blurPasses": passes,
+        "blurSize": size,
+        "barBlur": bar_blur
+    }))
+
+def apply_hyprland(active, inactive, blur_en, passes, size, bar_blur):
+    lua_code = f"hl.config({{ decoration = {{ active_opacity = {active:.2f}, inactive_opacity = {inactive:.2f}, blur = {{ enabled = {str(blur_en).lower()}, passes = {passes}, size = {size}, ignore_opacity = true, new_optimizations = true }} }} }})"
+    subprocess.run(["hyprctl", "eval", lua_code], capture_output=True)
+    if bar_blur:
+        bar_lua = 'hl.layer_rule({ match = { namespace = "omarchy-bar" }, blur = true, blur_popups = true, ignore_alpha = 0.1 })'
+        subprocess.run(["hyprctl", "eval", bar_lua], capture_output=True)
+    else:
+        subprocess.run(["hyprctl", "reload"], capture_output=True)
+        subprocess.run(["hyprctl", "eval", lua_code], capture_output=True)
+
+def cmd_set(active, inactive, blur_en, passes, size, bar_blur):
+    # Persist in looknfeel.lua
+    if LOOKNFEEL_FILE.exists():
+        content = LOOKNFEEL_FILE.read_text()
+        bar_rule = '\nhl.layer_rule({ match = { namespace = "omarchy-bar" }, blur = true, blur_popups = true, ignore_alpha = 0.1 })' if bar_blur else ''
+        fenced_block = f"""-- @omarchy-glass-start
+hl.config({{
+  decoration = {{
+    active_opacity = {active:.2f},
+    inactive_opacity = {inactive:.2f},
+    blur = {{
+      enabled = {str(blur_en).lower()},
+      size = {size},
+      passes = {passes},
+      ignore_opacity = true,
+      new_optimizations = true,
+    }},
+  }},
+}}){bar_rule}
+-- @omarchy-glass-end"""
+        if "-- @omarchy-glass-start" in content and "-- @omarchy-glass-end" in content:
+            new_content = re.sub(r"-- @omarchy-glass-start.*?-- @omarchy-glass-end", fenced_block, content, flags=re.DOTALL)
+        else:
+            new_content = content.rstrip() + "\n\n" + fenced_block + "\n"
+        LOOKNFEEL_FILE.write_text(new_content)
+    apply_hyprland(active, inactive, blur_en, passes, size, bar_blur)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2 or sys.argv[1] == "get":
+        cmd_get()
+    elif sys.argv[1] == "live" and len(sys.argv) >= 7:
+        active = float(sys.argv[2])
+        inactive = float(sys.argv[3])
+        blur_en = sys.argv[4].lower() in ("true", "1", "yes")
+        passes = int(sys.argv[5])
+        size = int(sys.argv[6])
+        bar_blur = sys.argv[7].lower() in ("true", "1", "yes") if len(sys.argv) > 7 else is_bar_blur_enabled()
+        apply_hyprland(active, inactive, blur_en, passes, size, bar_blur)
+    elif sys.argv[1] == "set" and len(sys.argv) >= 7:
+        active = float(sys.argv[2])
+        inactive = float(sys.argv[3])
+        blur_en = sys.argv[4].lower() in ("true", "1", "yes")
+        passes = int(sys.argv[5])
+        size = int(sys.argv[6])
+        bar_blur = sys.argv[7].lower() in ("true", "1", "yes") if len(sys.argv) > 7 else is_bar_blur_enabled()
+        cmd_set(active, inactive, blur_en, passes, size, bar_blur)
