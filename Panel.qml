@@ -77,12 +77,11 @@ Panel {
   Component.onCompleted: loadSettings()
   onOpenedChanged: if (opened) loadSettings()
 
-  WidgetButton {
+  BarIconButton {
     id: button
     anchors.fill: parent
     bar: root.bar
     text: "󰾆"
-    fontSize: Style.bar.iconFont
     tooltipText: "Glass & Blur Control"
     onPressed: function(b) {
       if (b === Qt.LeftButton || b === Qt.MiddleButton) root.toggle()
@@ -297,6 +296,8 @@ Panel {
 
         PanelSeparator {
           foreground: root.bar ? root.bar.foreground : Color.foreground
+        }
+
         // Section 4: Top Bar Blur
         Toggle {
           width: parent.width
